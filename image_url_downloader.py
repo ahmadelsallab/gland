@@ -8,7 +8,14 @@
 # resume a partially completed download. All images will be saved in the JPG
 # format with 90% compression quality.
 
-import sys, os, multiprocessing, urllib.request, urllib.error, urllib.parse, csv
+import sys, os, multiprocessing, csv, requests, shutil
+try:
+    #from urllib.request import urlopen
+    import urllib.request
+except ImportError:
+    #from urllib2 import urlopen
+    import urllib2
+
 from PIL import Image
 from io import StringIO
 
@@ -28,28 +35,24 @@ def DownloadImage(key_url):
   if os.path.exists(filename):
     print(('Image %s already exists. Skipping download.' % filename))
     return
-
+  #response = urllib2.urlopen(url)
+  #image_data = response.read()
   try:
-    response = urllib.request.urlopen(url)
-    image_data = response.read()
+    #response = urllib2.request.urlopen(url)
+    #image_data = response.read()
+    response = requests.get(url, stream=True)
+
   except:
     print(('Warning: Could not download image %s from %s' % (key, url)))
     return
 
   try:
-    pil_image = Image.open(StringIO(image_data))
-  except:
-    print(('Warning: Failed to parse image %s' % key))
-    return
 
-  try:
-    pil_image_rgb = pil_image.convert('RGB')
-  except:
-    print(('Warning: Failed to convert image %s to RGB' % key))
-    return
+    with open(filename, 'wb') as out_file:
+        shutil.copyfileobj(response.raw, out_file)
+	out_file.close()
+    del response
 
-  try:
-    pil_image_rgb.save(filename, format='JPEG', quality=90)
   except:
     print(('Warning: Failed to save image %s' % filename))
     return
